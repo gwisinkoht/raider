@@ -1,6 +1,6 @@
 [tool.poetry]
     name = "raider"
-    version = "0.2.2"
+    version = "0.2.3"
     description = "Web authentication testing framework"
     authors = ["Daniel Neagaru <daniel@digeex.de>"]
     packages = [
@@ -60,7 +60,7 @@
     sphinxcontrib-needs = "^0.7.9"
     sphinx-autodoc-typehints = "^1.18.3"
     sphinx-rtd-theme = "^1.0.0"
-    Pillow = "^9.1.1"
+    Pillow = "^9.2.0"
     sphinxcontrib-plantuml = "^0.23"
 
 [build-system]
