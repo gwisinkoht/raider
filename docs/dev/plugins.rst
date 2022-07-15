@@ -4,11 +4,12 @@
 Plugins
 =======
 
-Plugins in **Raider** are pieces of code that are used to get inputs
-from, and put them in the HTTP request, and/or to extract some values
-from the response. This is used to facilitate the information exchange
-between :ref:`Flows <flows>`. Below there's a list of predefined
-Plugins. The users are also encouraged to write their own plugins.
+:term:`Plugins <Plugin>` in **Raider** are pieces of code that are
+used to get inputs from, and put them in the HTTP request, and/or to
+extract some values from the response. This is used to facilitate the
+information exchange between :ref:`Flows <flows>`. Below there's a
+list of predefined :term:`Plugins <Plugin>`. The users are also
+encouraged to :ref:`write their own plugins <plugin_api>`.
 
 
 Common
@@ -17,22 +18,66 @@ Common
 Plugin
 ++++++
 
+Use this class only when creating new plugins. Either when
+:ref:`writing custom plugins <plugin_api>` in hylang or when adding
+new plugins to the Raider main code. `Check the repository
+<https://github.com/OWASP/raider/tree/main/raider/plugins>`_ for
+inspiration.
+
+Plugin's behaviour can be controlled with following flags:
+
++---------------------------+------+
+| NEEDS_USERDATA            | 0x01 |
++---------------------------+------+
+| NEEDS_RESPONSE            | 0x02 |
++---------------------------+------+
+| DEPENDS_ON_OTHER_PLUGINS  | 0x04 |
++---------------------------+------+
+| NAME_NOT_KNOWN_IN_ADVANCE | 0x08 |
++---------------------------+------+
+
+
+Combine the flags with boolean OR if you want to set more flags, for
+example:
+
+.. code-block::
+
+   class MyPlugin(Plugin):
+   def __init__(self, name):
+       super().__init__(
+           name=name,
+           function=self.extract_html_tag,
+           flags=Plugin.NEEDS_USERDATA|Plugins.NEEDS_RESPONSE,
+       )
+   
+
 .. autoclass:: Plugin
+   :members:
 
 Parser
 ++++++
 
+The Parser plugin parses other plugins.
+
 .. autoclass:: Parser
+   :members:
 
 Processor
 +++++++++
 
+The Processor plugin encodes, decodes and otherwise processes other
+plugins.
+
 .. autoclass:: Processor
+   :members:
 
 Empty
 +++++
 
+The Empty plugin is unique in that it contains no function or value.
+
 .. autoclass:: Empty
+   :members:
 
 
 .. module:: raider.plugins.basic
@@ -45,10 +90,10 @@ Basic
 Variable
 ++++++++
 
-Use this when the value of the plugin should be extracted from the
-user data. At the moment only ``username`` and ``password`` are
-working. Future versions will allow adding and accessing arbitrary
-data from the users.
+The Variable plugin extracts the value of a variable.
+
+.. autoclass:: Variable
+   :members:	       
 
 Example:
 
@@ -56,16 +101,15 @@ Example:
 
    (setv username (Variable "username"))
 
-.. autoclass:: Variable
-   :members:	       
-
 .. _plugin_prompt:
 
 Prompt
 ++++++
 
-Prompt plugin should be used when the information is not known in
-advance, for example when receiving the SMS code.
+The prompt plugin accepts user input mid-flow.
+
+.. autoclass:: Prompt
+   :members:
 
 Example:
 
@@ -73,15 +117,15 @@ Example:
 
    (setv mfa_code (Prompt "Input code here:"))
 
-.. autoclass:: Prompt
-   :members:	       
-
 .. _plugin_cookie:      
 
 Cookie
 ++++++
 
-Use Cookie plugin to extract and set new cookies:
+The cookie plugin extracts and sets new cookies.
+
+.. autoclass:: Cookie
+   :members:
 
 Example:
 
@@ -89,18 +133,16 @@ Example:
 
    (setv session_cookie (Cookie "PHPSESSID"))
 
-.. autoclass:: Cookie
-   :members:	       
-	       
 
 .. _plugin_header:      
 
 Header
 ++++++
 
-Use Header plugin to extract and set new headers. It also allows
-easier setup for basic and bearer authentication using the provided
-classmethods.
+The Header plugin extracts and sets new headers.
+
+.. autoclass:: Header
+   :members:
 
 Example:
 
@@ -119,29 +161,25 @@ Example:
       
    (setv z-header (Header.bearerauth access_token))
 
-.. autoclass:: Header
-   :members:	       
-
-
 
 File
 ++++
 
-Use the File plugin to set a plugin’s value to the contents of a file. The File plugin type comes with the benefit of a built-in method for substituting strings in the file content. This allows the user to quickly automate the manipulation of web elements such as scripts or data tables, as well as any other arbitrary file contents.
-
-Example:
+The File plugin sets the plugin's value to the contents of a provided file
+and allows string substitution within the content.
 
 .. autoclass:: File
    :members:	       
-
 
 .. _plugin_command:
 
 Command
 +++++++
 
-Use Command plugin if you want to extract information using a shell
-command.
+The Command plugin runs shell commands and extracts their output. 
+
+.. autoclass:: Command
+   :members:
 
 Example:
 
@@ -151,18 +189,16 @@ Example:
                    :name "otp"
 		   :command "pass otp personal/app1"))
 
-.. autoclass:: Command
-   :members:	       
-
 
 .. _plugin_regex:
 
 Regex
 +++++
 
-Use Regex plugin if the data you want extracted can be easily
-identified with a regular expression. The string matched in between
-``(`` and ``)`` will be stored as the plugin's value.
+The Regex plugin extracts a matched expression from a provided string.
+
+.. autoclass:: Regex
+   :members:
 
 Example:
 
@@ -174,21 +210,15 @@ Example:
            :regex "\"accessToken\":\"([^\"]+)\""))
 
 
-.. autoclass:: Regex
-   :members:	       
-	       
-
 .. _plugin_html:      
 
 Html
 ++++
 
-Use the Html plugin when the data you want can be easily extracted by
-parsing HTML tags. Create a new plugin by giving it a name, the tag
-where the information is located, some attributes to identify whether
-the tag is the right one, and the name of the tag attribute you want
-to extract. The attributes are created as a dictionary, and its values
-can be regular expressions.
+The Html plugin extracts tags matching attributes specified by the user.
+
+.. autoclass:: html
+   :members:
 
 Example:
 
@@ -205,13 +235,12 @@ Example:
             :extract "value"))
 
 
-.. autoclass:: Html
-   :members:	       
-
 .. _plugin_json:
       
 Json
 ++++
+
+The Json plugin extracts fields from JSON tables.
 
 .. autoclass:: Json
    :members:	       
@@ -225,11 +254,15 @@ Modifiers
 Alter
 +++++
 
+The Alter plugin extracts and alters the value of other plugins.
+
 .. autoclass:: Alter
    :members:	       
 
 Combine
 +++++++
+
+The Combine plugin concatenates the values of other plugins.
 
 .. autoclass:: Combine
    :members:	       
@@ -244,10 +277,44 @@ Parsers
 UrlParser
 +++++++++
 
+The URLParser plugin parses URLs and extracts elements from it.
+
 .. autoclass:: UrlParser
    :members:	       
-      
 
+.. module:: raider.plugins.processors
+
+Processors
+----------
+
+Urlencode
++++++++++
+
+The Urlencode plugin URL encodes a processor plugin.
+
+.. autoclass:: Urlencode
+   :members:
+
+Urldecode
++++++++++
+
+The Urldecode plugin URL decodes a processor plugin.
+
+.. autoclass:: Urldecode
+   :members:
+
+B64encode
++++++++++
+
+The B64encode plugin base64 encodes a processor plugin.
+
+B64decode
++++++++++
+
+The B64decode plugin base64 decodes a processor plugin.
+
+.. autoclass:: B64decode
+   :members:
 
 .. _plugin_api:
 
