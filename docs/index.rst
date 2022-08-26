@@ -101,6 +101,7 @@ User guide
    user/architecture
    user/tutorials
    user/definitions
+   user/prerequisites
    user/faq
 
 
