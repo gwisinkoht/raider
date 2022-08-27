@@ -109,7 +109,6 @@ User guide
    :maxdepth: 2
    :caption: Configuration
 
-   dev/special_variables
    dev/flows
    dev/attacks
    dev/plugins
