@@ -4,57 +4,141 @@
 Plugins
 =======
 
-Plugins in **Raider** are pieces of code that are used to get inputs
-from, and put them in the HTTP request, and/or to extract some values
-from the response. This is used to facilitate the information exchange
-between :ref:`Flows <flows>`. Below there's a list of predefined
-Plugins. The users are also encouraged to write their own plugins.
+:term:`Plugins <Plugin>` in **Raider** are pieces of code that are
+used to get inputs from, and put them in the HTTP :term:`Request`,
+and/or to extract some ``value`` from the :term:`Response`. This is
+used to :ref:`facilitate the information exchange <architecture>`
+between :ref:`Flows <flows>`. :term:`Plugins <Plugin>` act as inputs
+when used inside the :ref:`Flow's <flows>` ``request`` attribute, and
+as outputs when used in the ``outputs`` attribute.
+
+Below there's a list of predefined :term:`Plugins <Plugin>`. The users
+are also encouraged to :ref:`write their own plugins <plugin_api>`.
 
 
 Common
 ------
 
+Users most often won't need to use those unless they're writing their
+own :term:`Plugins <Plugin>`. Common :term:`Plugins <Plugin>` are
+mostly used as parent classes for other :term:`Plugins <Plugin>`.
+
 Plugin
 ++++++
 
-This is the parent class for all plugins.
+Use this class only when creating new :term:`Plugins <Plugin>`. Either
+when :ref:`writing custom plugins <plugin_api>` in `hylang
+<https://docs.hylang.org/en/master/>`_ or when adding new plugins to
+the Raider main code. `Check the repository
+<https://github.com/OWASP/raider/tree/main/raider/plugins>`_ for
+inspiration.
+
+:class:`Plugin` objects can be used **BOTH** as inputs in HTTP
+:term:`Requests <Request>` and outputs from HTTP :term:`Responses
+<Response>`.
+
+:term:`Plugin's <Plugin>` behaviour can be controlled with following
+flags:
+
++---------------------------+------+
+| NEEDS_USERDATA            | 0x01 |
++---------------------------+------+
+| NEEDS_RESPONSE            | 0x02 |
++---------------------------+------+
+| DEPENDS_ON_OTHER_PLUGINS  | 0x04 |
++---------------------------+------+
+| NAME_NOT_KNOWN_IN_ADVANCE | 0x08 |
++---------------------------+------+
+
+
+Combine the flags with boolean OR if you want to set more flags, for
+example:
+
+.. code-block::
+
+   class MyPlugin(Plugin):
+   def __init__(self, name):
+       super().__init__(
+           name=name,
+           function=self.extract_html_tag,
+           flags=Plugin.NEEDS_USERDATA|Plugins.NEEDS_RESPONSE,
+       )
+   [...]
 
 .. autoclass:: Plugin
+   :members:
 
 Parser
 ++++++
 
-The Parser plugin parses other plugins.
+The :class:`Parser` :class:`Plugin` takes other :class:`Plugins
+<Plugin>` as input, parses it, and extracts the piece of information
+for further use. :class:`Parser` :class:`Plugins <Plugin>` can
+**ONLY** be used as inputs.
 
 .. autoclass:: Parser
+   :members:
 
 Processor
 +++++++++
 
-The Processor plugin encodes, decodes and otherwise processes other
-plugins.
+The :class:`Processor` :class:`Plugin` encodes, decodes and otherwise
+processes other :class:`Plugins <Plugin>`. :class:`Processor`
+:class:`Plugins <Plugin>` can **ONLY** be used as inputs.
 
 .. autoclass:: Processor
+   :members:
 
 Empty
 +++++
 
-The Empty plugin is unique in that it contains no function or value.
+The :class:`Empty` :class:`Plugin` is unique in that it contains no
+function or ``value``. Its only use is when fuzzing but no previous
+``value`` is needed. :class:`Empty` :class:`Plugin` can **ONLY** be
+used as inputs.
 
 .. autoclass:: Empty
+   :members:
 
+Example:
+
+.. code-block:: hylang
+
+   (setv placeholder (Empty "placeholder"))
+
+   (setv attack
+     (Flow
+       :request
+       (Request
+         :method "POST"
+	 :url "https://example.com/"
+	 :data
+	 {"item" "123"
+	  "filename" placeholder     ;; Sends empty filename by default.
+	                             ;; When fuzzing use the payload string instead.
+	 }
+       
 
 .. module:: raider.plugins.basic
 
 Basic
 -----
 
-.. _plugin_variable:
+Basic :class:`Plugins <Plugin>` are the most commonly used ones, that
+don't depend on other plugins to get its ``value``. Basic
+:class:`Plugins <Plugin>` can be used **BOTH** as inputs and outputs.
+
 
 Variable
 ++++++++
 
-The Variable plugin extracts the value of a variable.
+The :class:`Variable` :class:`Plugin <raider.plugins.common.Plugin>`
+extracts the ``value`` defined in the :class:`User <raider.user.User>`
+object. Use it to get the username/password or other extra information
+about the :class:`User <raider.user.User>`. :class:`Variable`
+:class:`Plugins <raider.plugins.common.Plugin>` can **ONLY** be used
+as inputs.
+
 
 .. autoclass:: Variable
    :members:	       
@@ -63,14 +147,43 @@ Example:
 
 .. code-block:: hylang
 
+   (setv users
+         (Users
+           [{"admin"                     ;; username
+             "password"                  ;; password
+             :nickname "admin"           ;; extra optional data
+	     :email "admin@example.com"}
+            {"user1" "password1"
+            :attribute "blah"
+            :nickname "mynickname"
+            :email "abc@example.com"}]))
+   
    (setv username (Variable "username"))
+   (setv password (Variable "password"))
+   (setv nickname (Variable "nickname"))
+
+
+   (setv login
+     (AuthFlow
+       :request
+         (Request
+	   :method "POST"
+	   :url "https://www.example.com/login"
+	   :data
+	   {"username" username          ;; Sends the active user's credentials
+	    "password" password          ;; and the email in the respective fields.
+	    "email" email}
 
 .. _plugin_prompt:
 
 Prompt
 ++++++
 
-The prompt plugin accepts user input mid-flow.
+The prompt plugin accepts user input mid-flow. Use it when you don't
+know in advance the data you will need to send, like in case of
+:term:`multi-factor authentication (MFA)`. :class:`Prompt`
+:class:`Plugins <raider.plugins.common.Plugin>` can **ONLY** be used
+as inputs.
 
 .. autoclass:: Prompt
    :members:
@@ -79,14 +192,31 @@ Example:
 
 .. code-block:: hylang
 
-   (setv mfa_code (Prompt "Input code here:"))
+   (setv username (Variable "username"))
+   (setv password (Variable "password"))
+   (setv mfa_code (Prompt "Input code here:"))      ;; Asks user for the MFA code.
+
+   (setv multifactor
+     (AuthFlow
+       :request
+         (Request
+	   :method "POST"
+	   :url "https://www.example.com/login"
+           :data
+	   {"username" username
+	    "password" password
+	    "otp" mfa_code}             ;; Sends the data from user's input in `otp`.
 
 .. _plugin_cookie:      
 
 Cookie
 ++++++
 
-The cookie plugin extracts and sets new cookies.
+The :class:`Cookie` :class:`Plugin <raider.plugins.common.Plugin>`
+extracts its ``value`` from the :term:`Response's <Response>`
+:class:`Cookie` headers. :class:`Cookie` :class:`Plugins
+<raider.plugins.common.Plugin>` can be used **BOTH** as inputs and
+outputs.
 
 .. autoclass:: Cookie
    :members:
@@ -95,15 +225,67 @@ Example:
 
 .. code-block:: hylang
 
-   (setv session_cookie (Cookie "PHPSESSID"))
+   (setv username (Variable "username"))
+   (setv password (Variable "password"))
+   (setv session_cookie (Cookie "PHPSESSID"))   ;; Defines `session_cookie` as a Cookie
+                                                ;; object with the name `PHPSESSID`.
 
 
-.. _plugin_header:      
+   (setv csrf_token                         ;; Extract CSRF token from cookies
+     (Cookie.regex "([a-zA-Z0-9]{10})"))    ;; where its name is a 10 alphanumerical string.
+						
+   (setv access_token
+     (Json                         ;; Uses the Json Plugin
+       :name "access_token"        ;; To extract the access token
+       :extract "token"))          ;; Stored in `token`.
+
+   (setv initialization
+     (AuthFlow
+       :request
+         (Request
+	   :method "GET"
+	   :url "https://www.example.com")
+       :outputs [session_cookie                 ;; Extracts `PHPSESSID` from response.
+                 csrf_token]                    ;; Extracts CSRF token using `Cookie.regex`.
+       :operations [(NextStage "login")]))
+
+   (setv login
+     (AuthFlow
+       :request
+         (Request
+	   :method "POST"
+	   :url "https://www.example.com/login"
+           :cookies [session_cookie             ;; Uses the `PHPSESSID` extracted above.
+
+	             (Cookie "admin" "true")    ;; Sends a custom cookie named `admin`
+		                                ;; and the value `true`.
+
+		     csrf_token]                ;; Sends the CSRF token as a cookie.
+	   :data
+	   {"username" username
+	    "password" password})))
+
+   (setv my_function
+     (Flow
+       :name "my_function"
+       :request (Request
+                  :method "GET"
+                  :url "https://www.example.com/my_function"
+
+                  ;; Sends the cookie `mycookie` with the value of
+                  ;; `access_token` extracted from JSON.
+                  :cookies [(Cookie.from_plugin access_token "mycookie" )])))
+
+
+
 
 Header
 ++++++
 
-The Header plugin extracts and sets new headers.
+The :class:`Header` :class:`Plugin <raider.plugins.common.Plugin>`
+extracts and sets new headers.  :class:`Cookie` :class:`Plugins
+<raider.plugins.common.Plugin>` can be used **BOTH** as inputs and
+outputs.
 
 .. autoclass:: Header
    :members:
@@ -112,24 +294,54 @@ Example:
 
 .. code-block:: hylang
 
-   (setv x-header (Header "x-header"))
-   (setv y-header (Header "y-header" "y-value"))
-
-   (setv z-header (Header.basicauth "username" "password"))
-
-
    (setv access_token
          (Regex
-           :name "access_token"
-           :regex "\"accessToken\":\"([^\"]+)\""))
+           :name "access_token"                     ;; Extracts `access_token` using
+           :regex "\"accessToken\":\"([^\"]+)\""))  ;; regular expressions.
       
-   (setv z-header (Header.bearerauth access_token))
+   (setv user_id
+     (Json                         ;; Uses the Json Plugin
+       :name "user_id"             ;; To extract `user_id`.
+       :extract "user_id"))
+
+
+   (setv authheader (Header.bearerauth access_token))   ;; Defines bearer authorization header.
+   (setv useragent (Header "User-Agent" "Mozilla/5.0")) ;; Static user agent.
+
+   (setv username (Variable "username"))
+   (setv password (Variable "password"))
+
+   (setv login
+     (AuthFlow
+       :request
+         (Request
+	   :method "POST"
+	   :url "https://www.example.com/login"
+	   :headers [useragent                    ;; Sets the user agent.
+
+	             (Headers.from_plugin         ;; Creates new header from ``user_id``
+		       user_id                    ;; Plugin and uses it in the value of
+		       "X-identification")        ;; X-identification customer header.
+	   :data
+	   {"username" username
+	    "password" password})
+       :outputs [access_token]))                  ;; Extracts the `access_token`.
+
+   (setv my_function
+     (Flow
+       :name "my_function"
+       :request (Request
+                  :method "GET"
+                  :url "https://www.example.com/my_function"
+                  :headers [authheader])))
+
+
 
 
 File
 ++++
 
-The File plugin sets the plugin's value to the contents of a provided file
+The File plugin sets the plugin's ``value`` to the contents of a provided file
 and allows string substitution within the content.
 
 .. autoclass:: File
@@ -159,7 +371,7 @@ Example:
 Regex
 +++++
 
-The Regex plugin extracts a matched expression from a provided string.
+The Regex plugin extracts a matched expression from the HTTP response.
 
 .. autoclass:: Regex
    :members:
@@ -181,7 +393,7 @@ Html
 
 The Html plugin extracts tags matching attributes specified by the user.
 
-.. autoclass:: html
+.. autoclass:: Html
    :members:
 
 Example:
@@ -218,7 +430,7 @@ Modifiers
 Alter
 +++++
 
-The Alter plugin extracts and alters the value of other plugins.
+The Alter plugin extracts and alters the ``value`` of other plugins.
 
 .. autoclass:: Alter
    :members:	       
@@ -226,7 +438,7 @@ The Alter plugin extracts and alters the value of other plugins.
 Combine
 +++++++
 
-The Combine plugin concatenates the values of other plugins.
+The Combine plugin concatenates the ``value`` of other plugins.
 
 .. autoclass:: Combine
    :members:	       
@@ -238,12 +450,12 @@ The Combine plugin concatenates the values of other plugins.
 Parsers
 -------
 
-UrlParser
+Urlparser
 +++++++++
 
 The URLParser plugin parses URLs and extracts elements from it.
 
-.. autoclass:: UrlParser
+.. autoclass:: Urlparser
    :members:	       
 
 .. module:: raider.plugins.processors
@@ -338,7 +550,7 @@ And we can create a new variable that will use this class:
     (setv mfa_code (PasswordStore "personal/reddit"))
 
 
-Now whenever we use the ``mfa_code`` in our requests, its value will
+Now whenever we use the ``mfa_code`` in our requests, its ``value`` will
 be extracted from the password store.
 
 

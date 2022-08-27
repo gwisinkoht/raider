@@ -98,8 +98,8 @@ User guide
    :caption: Getting started
 
    user/install
-   user/architecture
    user/tutorials
+   user/architecture
    user/definitions
    user/prerequisites
    user/faq
@@ -110,9 +110,10 @@ User guide
    :caption: Configuration
 
    dev/flows
-   dev/attacks
+   dev/users
    dev/plugins
    dev/operations
+   dev/attacks
 
 
 .. toctree::
