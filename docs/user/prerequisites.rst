@@ -18,8 +18,10 @@ Hylang Resources
 <https://www.youtube.com/watch?v=HM1Zb3xmvMc>`_
 
 Web Proxy Resources
+-------------------
 
 `Burpsuite Homepage <https://portswigger.net/burp>`_
+
 `Burpsuite Tutorial Video by John Hammond 
 <https://www.youtube.com/watch?v=G3hpAeoZ4ek>`_
 
