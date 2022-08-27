@@ -218,11 +218,15 @@ Modifiers
 Alter
 +++++
 
+The Alter plugin extracts and alters the value of other plugins.
+
 .. autoclass:: Alter
    :members:	       
 
 Combine
 +++++++
+
+The Combine plugin concatenates the values of other plugins.
 
 .. autoclass:: Combine
    :members:	       
@@ -237,10 +241,44 @@ Parsers
 UrlParser
 +++++++++
 
+The URLParser plugin parses URLs and extracts elements from it.
+
 .. autoclass:: UrlParser
    :members:	       
-      
 
+.. module:: raider.plugins.processors
+
+Processors
+----------
+
+Urlencode
++++++++++
+
+The Urlencode plugin URL encodes a processor plugin.
+
+.. autoclass:: Urlencode
+   :members:
+
+Urldecode
++++++++++
+
+The Urldecode plugin URL decodes a processor plugin.
+
+.. autoclass:: Urldecode
+   :members:
+
+B64encode
++++++++++
+
+The B64encode plugin base64 encodes a processor plugin.
+
+B64decode
++++++++++
+
+The B64decode plugin base64 decodes a processor plugin.
+
+.. autoclass:: B64decode
+   :members:
 
 .. _plugin_api:
 
