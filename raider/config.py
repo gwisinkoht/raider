@@ -21,13 +21,16 @@ import os
 import sys
 from typing import Any, Dict
 
+from raider.logger import get_logger
 from raider.utils import (
+    colors,
     create_hy_expression,
     default_user_agent,
     eval_file,
     eval_project_file,
     get_config_file,
     get_project_dir,
+    list_hyfiles,
     list_projects,
 )
 
@@ -75,66 +78,15 @@ class Config:
         else:
             output = {}
 
-        self.proxy = output.get("proxy", None)
-        self.verify = output.get("verify", False)
-        self.loglevel = output.get("loglevel", "WARNING")
-        self.user_agent = output.get("user_agent", default_user_agent())
-        self.active_project = output.get("active_project", None)
-        self.project_config: Dict[str, Any] = {}
+        self.output = output
 
-        self.logger = logging.getLogger()
-        self.logger.setLevel(self.loglevel)
+        self.logger = get_logger(self.loglevel, "raider")
 
         if not list_projects():
             self.logger.critical(
                 "No application have been configured. Cannot run."
             )
             sys.exit()
-
-    def load_project(self, project: str = None) -> Dict[str, Any]:
-        """Loads project settings.
-
-        Goes through all the ".hy" files in the project directory,
-        evaluates them all, and returns the created locals, making them
-        available to the rest of Raider.
-
-        Files are loaded in alphabetical order, and objects created in
-        one of them will be available to the next one, eliminating the
-        need to use imports. This allows the user to split the
-        configuration files however it makes sense, and Raider doesn't
-        impose any restrictions on those files.
-
-        All ".hy" files in the project directory are evaluated, which
-        could be considered unsafe and could cause all kinds of security
-        issues, but Raider assumes the user knows what they're doing and
-        will not copy/paste hylang code from untrusted sources.
-
-        Args:
-          project:
-            A string with the name of the project. By default the
-            project is located in "~/.config/raider/". All ".hy" files
-            from this directory will be executed and the locals that
-            were created during that will be returned.
-        Returns:
-          A dictionary as returned by the locals() function. It contains
-          all of the locally defined objects in the ".hy" configuration
-          files.
-        """
-        if not project:
-            active_project = self.active_project
-        else:
-            active_project = project
-
-        hyfiles = sorted(os.listdir(get_project_dir(active_project)))
-        shared_locals: Dict[str, Any]
-        shared_locals = {}
-        for confile in hyfiles:
-            if confile.endswith(".hy") and not confile.startswith("."):
-                shared_locals.update(
-                    eval_project_file(active_project, confile, shared_locals)
-                )
-        self.project_config = shared_locals
-        return shared_locals
 
     def write_config_file(self) -> None:
         """Writes global configuration to common.hy.
@@ -156,8 +108,48 @@ class Config:
 
     def print_config(self) -> None:
         """Prints current configuration."""
-        print("proxy: " + self.proxy)
+        print("proxy: " + str(self.proxy))
         print("verify: " + str(self.verify))
         print("loglevel: " + self.loglevel)
         print("user_agent: " + self.user_agent)
-        print("active_project: " + self.active_project)
+        print("active_project: " + str(self.active_project))
+
+    @property
+    def proxy(self):
+        return self.output.get("proxy", None)
+
+    @proxy.setter
+    def proxy(self, value: str):
+        self.output["proxy"] = value
+
+    @property
+    def verify(self):
+        return self.output.get("verify", False)
+
+    @verify.setter
+    def verify(self, value: str):
+        self.output["verify"] = value
+
+    @property
+    def loglevel(self):
+        return self.output.get("loglevel", "WARNING")
+
+    @loglevel.setter
+    def loglevel(self, value: str):
+        self.output["loglevel"] = value
+
+    @property
+    def user_agent(self):
+        return self.output.get("user_agent", default_user_agent())
+
+    @user_agent.setter
+    def user_agent(self, value: str):
+        self.output["user_agent"] = value
+
+    @property
+    def active_project(self):
+        return self.output.get("active_project", None)
+
+    @active_project.setter
+    def active_project(self, value: str):
+        self.output["active_project"] = value

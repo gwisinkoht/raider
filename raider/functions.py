@@ -17,9 +17,10 @@
 """
 
 
-import logging
 import sys
 from typing import Dict, Optional
+
+import igraph
 
 from raider.config import Config
 from raider.flow import Flow
@@ -39,7 +40,7 @@ class Functions:
 
     """
 
-    def __init__(self, functions: Dict[str, Flow]) -> None:
+    def __init__(self, config, graph: igraph.Graph) -> None:
         """Initializes the Functions object.
 
         Args:
@@ -48,7 +49,9 @@ class Functions:
             object.
 
         """
-        self.functions = functions
+        self.graph = graph
+        self.config = config
+        self.logger = config.logger
 
     def __getitem__(self, key: str) -> Optional[Flow]:
         if key not in self.functions.keys():
@@ -80,7 +83,7 @@ class Functions:
             A Config object with the global Raider configuration.
 
         """
-        logging.info("Running function %s", name)
+        self.logger.info("Running function %s", name)
         function = self.functions[name]
         if function:
             function.execute(user, config)
@@ -92,7 +95,7 @@ class Functions:
             next_stage = function.run_operations()
             return next_stage
 
-        logging.critical("Function %s not defined. Cannot continue", name)
+        self.logger.critical("Function %s not defined. Cannot continue", name)
         sys.exit()
 
     def run_chain(self, name: str, user: User, config: Config) -> None:

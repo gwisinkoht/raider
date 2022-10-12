@@ -16,9 +16,10 @@
 """Authentication class responsible for running the defined stages.
 """
 
-import logging
 import sys
 from typing import Dict, Optional, Union
+
+import igraph
 
 import raider.plugins as Plugins
 from raider.config import Config
@@ -38,24 +39,26 @@ class Authentication:
 
     """
 
-    def __init__(self, stages: Dict[str, AuthFlow]) -> None:
+    def __init__(self, config, graph: igraph.Graph) -> None:
         """Initializes the Authentication object.
 
         Creates an object to handle the authentication process.
 
         Args:
-          stages:
+          graph:
             A list of Flow objects defined inside "_authentication"
             variable in hy configuration files.
 
         """
-        self.stages = stages
+        self.graph = graph
+        self.config = config
+        self.logger = config.logger
         self._current_stage = 0
 
     def __getitem__(self, key: str) -> Optional[AuthFlow]:
-        if key not in self.stages.keys():
+        if key not in self.graph.keys():
             return None
-        return self.stages[key]
+        return self.graph[key]
 
     def get_stage_name_by_id(self, stage_id: int) -> str:
         """Returns the stage name given its number.
@@ -72,31 +75,20 @@ class Authentication:
           A string with the name of the Flow in the position "stage_id".
 
         """
-        return list(self.stages.keys())[stage_id]
+        if not self.graph.vs:
+            return None
+        return self.graph.vs[stage_id]["name"]
 
     def get_stage_index(self, name: str) -> int:
         """Returns the index of the stage given its name.
 
 
-        Each authentication step is given an index based on its position
-        in the "_authentication" list. This function returns the index of
-        the Flow based on its name.
-
-        Args:
-          name:
-            A string with the name of the Flow.
-
         Returns:
           An integer with the index of the Flow with the specified "name".
         """
-        keys = list(self.stages.keys())
+        return self.graph.vs[::]["name"].index(name)
 
-        if not name or name not in keys:
-            return -1
-
-        return keys.index(name)
-
-    def run_all(self, user: User, config: Config) -> None:
+    def run_all(self, config: Config) -> None:
         """Runs all authentication stages.
 
         This function will run all authentication stages for the
@@ -112,11 +104,11 @@ class Authentication:
 
         """
         while self._current_stage >= 0:
-            self.run_current_stage(user, config)
+            self.run_current_stage(config)
 
         self._current_stage = 0
 
-    def run_current_stage(self, user: User, config: Config) -> None:
+    def run_current_stage(self, config: Config) -> None:
         """Runs the current stage only.
 
         Authentication class keeps the index of the current stage in the
@@ -131,14 +123,14 @@ class Authentication:
             A Config object with the global Raider settings.
 
         """
-        logging.info(
+        self.logger.info(
             "Running stage %s",
             self.get_stage_name_by_id(self._current_stage),
         )
-        self.run_stage(self._current_stage, user, config)
+        self.run_stage(self._current_stage, config)
 
     def run_stage(
-        self, stage_id: Union[int, str], user: User, config: Config
+        self, stage_id: Union[int, str], config: Config
     ) -> Optional[str]:
         """Runs one authentication Stage.
 
@@ -167,26 +159,28 @@ class Authentication:
         stage: Optional[Flow]
         if isinstance(stage_id, int):
             stage_name = self.get_stage_name_by_id(stage_id)
-            stage = self.stages[stage_name]
+            stage = self.graph[stage_name]
         elif isinstance(stage_id, str):
-            stage = self.stages[stage_id]
+            stage = self.graph[stage_id]
 
         if not stage:
-            logging.critical("Stage %s not defined. Cannot continue", stage_id)
+            self.logger.critical(
+                "Stage %s not defined. Cannot continue", stage_id
+            )
             sys.exit()
 
-        stage.execute(user, config)
+        stage.execute(config)
 
         if stage.outputs:
             for item in stage.outputs:
                 if isinstance(item, Plugins.Cookie):
-                    user.set_cookie(item)
+                    config.active_user.set_cookie(item)
                 elif isinstance(item, Plugins.Header):
-                    user.set_header(item)
+                    config.active_user.set_header(item)
                 elif isinstance(
                     item, (Plugins.Regex, Plugins.Html, Plugins.Json)
                 ):
-                    user.set_data(item)
+                    config.active_user.set_data(item)
 
         next_stage = stage.run_operations()
         if next_stage:

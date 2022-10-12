@@ -21,6 +21,8 @@ from typing import Callable, Dict, List, Optional
 
 import requests
 
+from raider.config import Config
+
 
 class Plugin:
     """Parent class for all :class:`Plugins <Plugin>`.
