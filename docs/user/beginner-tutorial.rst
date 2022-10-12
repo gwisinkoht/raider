@@ -1,7 +1,7 @@
 .. _beginner-tutorial:
 
 Beginner Tutorial
-========
+=================
 
 This beginner tutorial will guide you through how to use Raider and
 highlight why Raider is different than other web penetration tools 
@@ -135,7 +135,8 @@ ready to run your `firstraid` project! You can run it from the command
 line with the line `raider authenticate firstraid` to see the following
 output:
 
-.. codeblock:: bash
+.. code-block:: bash
+
    $ raider authenticate firstraid
    Wow, my first Raider project!
    Hooray! The config file finished loading.
