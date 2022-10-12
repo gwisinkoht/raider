@@ -91,32 +91,10 @@ Writing An Authentication Config File
 -------------------------------------
 
 Raider has three main modes: `shell`, `authenticate`, and `run`. In this
-tutorial we will focus on the simplest of the three, `authenticate`.
+tutorial we will focus on `authenticate`.
 
-An authentication config file requires at least one defined username and
-password pair stored in a User type object and at least one defined
+An authentication config file requires at least one defined
 AuthFlow type object.
-
-A User object, referred to in Raider as a User Plugin,  contains 
-username and password pairs which can be accessed by other objects in 
-Raider. Every configuration file must have a User Plugin defined even if
-not directly used in the configuration or Raider will throw an error.
-
-Let's add one to our main.hy file now.
-
-.. code-block:: hylang
-  
-   (print "Wow, my first Raider project!")
-
-   (setv users 
-         (Users
-           [{"defaultuser" "defaultpass"}]))
-
-The `setv` in Hylang is similar to `var` in Python. It creates a
-variable `users` which is set to a User object containing one username
-password pair in the next two lines.
-
-Moving onto the AuthFlow object...
 
 An AuthFlow dictates the steps necessary for changing the authentication
 state of an html request. Here is an example added to our main.hy file.
@@ -124,10 +102,6 @@ state of an html request. Here is an example added to our main.hy file.
 .. code-block:: hylang
    
    (print "Wow, my first Raider project!")
-
-   (setv users 
-         (Users                                      
-           [{"defaultuser" "defaultpass"}]))         
    
    (setv complex_form_auth
          (AuthFlow
@@ -137,7 +111,7 @@ state of an html request. Here is an example added to our main.hy file.
              :headers [(Header.basicauth "user" "pass")])
            :operations [(Print.headers["Location"])]))
 
-Once again we use `setv` to create a variable, in this case `complex_form_auth`
+The `setv` term is used to create a variable, in this case `complex_form_auth`,
 and set it to an AuthFlow object. The request parameters are set in
 `:request (Request $parameters$)`. Here we set the target url to a site
 created by Robert Lerner for the purposes of testing authentication
@@ -163,10 +137,6 @@ output:
 
 .. codeblock:: bash
    $ raider authenticate firstraid
-   Raider command line running.
-   Here's a hint in cli.py! args: Namespace(command='authenticate', project='firstraid', proxy=None, user=None, verbose=False)
-   cli.py:: Here's the args.project variable: firstraid
-   Here's a hint in ~/raider.py! project: firstraid
    Wow, my first Raider project!
    Hooray! The config file finished loading.
    HTTP response headers:
